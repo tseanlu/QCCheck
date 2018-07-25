@@ -15,7 +15,8 @@ library(QCfuns)
 library(parsedate)
 library(dplyr)
 library(parsedate)
-source("QCfuns.R")
+
+
 setwd("\\\\cdars.pfizer.com/cdars/prod/prjA409/internship/A4091056/saseng/cdisc3_0/data/rawdata")
 namraw=list.files()
 inputdatar=namraw[!grepl("sas7bdat,v",namraw)]
