@@ -1,3 +1,22 @@
+library(shiny)
+library(shinydashboard)
+library(shinyWidgets)
+library(knitr)
+library(tinytex)
+library(gridExtra)
+library(haven)
+library(DT)
+library(grid)
+library(tableone)
+library(ggplot2)
+library(reshape)
+library(lme4)
+library(QCfuns)
+library(parsedate)
+library(dplyr)
+library(parsedate)
+source("QCfuns.R")
+
 
 shinyServer(function(input, output,session) {
   specdata <- reactive({
