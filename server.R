@@ -15,6 +15,9 @@ library(QCfuns)
 library(parsedate)
 library(dplyr)
 library(parsedate)
+adwnall.sas7bdat=read_sas("adwnall.sas7bdat")
+adae.sas7bdat=read_sas("adae.sas7bdat")
+
 ARMcheck <- function(indat){
   setwd("//cdars.pfizer.com/cdars/prod/prjA409/internship/A4091056/saseng/cdisc3_0/data/rawdata")
   if (file.exists("final.sas7bdat")==TRUE) {
