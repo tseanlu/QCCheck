@@ -16,6 +16,7 @@ library(dplyr)
 library(parsedate)
 adwnall.sas7bdat=read_sas("adwnall.sas7bdat")
 adae.sas7bdat=read_sas("adae.sas7bdat")
+adsl.sas7bdat=read_sas("adsl.sas7bdat")
 
 ##AElisting
 
@@ -1173,8 +1174,6 @@ shinyServer(function(input, output,session) {
   ##################################
   ############bar,pie plot##############
   data_ae <-reactive({
-    setwd("\\\\cdars.pfizer.com/cdars/prod/prjA409/internship/A4091056/saseng/cdisc3_0/data_vai")
-    adae.sas7bdat<-read_sas("adae.sas7bdat")
     aelist <- c("Bradycardia", "Dizziness", "Heart rate decreased", "Orthostatic hypotension", "Sinus bradycardia", "Synscope", "Hypolidrosis", "Abdominal discomfort", "Diarrhoea", "Nausea", "Vomiting", "Urinary incomtimence")
     adaes <- subset(adae.sas7bdat, adae.sas7bdat$AEDECOD %in% aelist)
     return(switch(input$subset,
