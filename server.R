@@ -18,6 +18,188 @@ library(parsedate)
 adwnall.sas7bdat=read_sas("adwnall.sas7bdat")
 adae.sas7bdat=read_sas("adae.sas7bdat")
 
+##AElisting
+
+L13check<-function(dataspath1,dataspath2,pagesvector) {
+  options(warn=-1)
+  #dataspath1<-"C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Listings.pdf"
+  #pagesvector<-c(2644:2653)
+  aelisting<-extract_tables(dataspath1,pages=pagesvector,guess=F,output="data.frame")
+
+  #dataspath2<-"C:\\Users\\zengj23\\Documents\\Week 2_ADaM\\ADAE.csv"
+  adae<-read.csv(dataspath2)
+  adae$var1<-paste(adae$AESOC,"/",sep="")
+  adae$var21<-paste(adae$AEDECOD,"*/",sep="")
+  adae$var2<-paste(adae$AEDECOD,"/",sep="")
+  adae[which(adae$TRTEMFL=="Y"),]$var2<-adae[which(adae$TRTEMFL=="Y"),]$var21
+  adae$var3<-paste(adae$AETERM)
+
+  comments<-c()
+  comments1<-c()
+  commentst<-c()
+  pages1<-c()
+  Findings<-c()
+  Conclusions<-c()
+  indexn<-c()
+  indexn1<-c()
+
+  cycleno<-length(aelisting)
+  for (i in 1:cycleno) {
+    if (all(grepl("Causality",aelisting[[i]][,1])==F)) {
+      indexn1<-i
+      indexn<-c(indexn,indexn1)
+      subid<-aelisting[[indexn1]][6,1]
+      subid<-as.data.frame(subid)
+      colnames(subid)<-"col1"
+      subid2<-separate(data=subid,into=c("a","b"),col=col1,sep="\\(")
+      id2<-as.numeric(subid2$a) #find the ID in the list
+
+      var1.1<-paste(adae[which(adae$SUBJID==id2),]$var1)
+      var2.2<-paste(adae[which(adae$SUBJID==id2),]$var2)
+      var3.3<-paste(adae[which(adae$SUBJID==id2),]$var3)
+
+      #split all variables into lists
+      var1.1.0<-strsplit(var1.1," ")
+      var1.1.1<-c()
+      var1.1.2<-c()
+      for (j in 1:length(var1.1.0)) {
+        var1.1.1<-strsplit(var1.1.0[[j]]," ")
+        var1.1.2<-c(var1.1.2,var1.1.1)
+      }
+      var2.2.0<-strsplit(var2.2," ")
+      var2.2.1<-c()
+      var2.2.2<-c()
+      for (k in 1:length(var2.2.0)) {
+        var2.2.1<-strsplit(var2.2.0[[k]]," ")
+        var2.2.2<-c(var2.2.2,var2.2.1)
+      }
+      var3.3.0<-strsplit(var3.3," ")
+      var3.3.1<-c()
+      var3.3.2<-c()
+      for (l in 1:length(var3.3.0)) {
+        var3.3.1<-strsplit(var3.3.0[[l]]," ")
+        var3.3.2<-c(var3.3.2,var3.3.1)
+      }
+
+      #convert the first column of ae listing into a list
+      ae1.1<-c()
+      ae1.3<-c()
+      ae1<-strsplit(aelisting[[indexn1]][,1]," ")
+      for (m in 1:length(ae1)) {
+        ae1.1<-strsplit(ae1[[m]]," ")
+        ae1.3<-c(ae1.3,ae1.1)
+      }
+      if (indexn1<length(aelisting)) {
+        ae2.1<-c()
+        ae2.2<-c()
+        ae1.2<-c()
+        ae2<-strsplit(aelisting[[indexn1+1]][,1]," ")
+        for (n in 1:length(ae2)) {
+          ae2.1<-strsplit(ae2[[n]]," ")
+          ae2.2<-c(ae2.2,ae2.1)
+        }
+        ae1.2<-c(ae1.3,ae2.2)
+      }
+
+
+      if (sum(var1.1.2 %in% ae1.2)==length(var1.1.2) &
+          sum(var2.2.2 %in% ae1.2)==length(var2.2.2) &
+          sum(var3.3.2 %in% ae1.2)==length(var3.3.2)) {
+        pages1<-indexn1
+        comments1<-paste("No fields were truncated on page No.",pages1,".")
+        commentst<-c(commentst,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)!=length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)==length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)==length(var3.3.2)
+      ) {
+        pages1<-indexn1
+        var1.1<-as.data.frame(var1.1.2[which((var1.1.2 %in% ae1.2)==F)])
+        var1.1<-apply(var1.1,2,paste,collapse=", ")
+        comments1<-paste("The variables:",var1.1,"were truncated on page No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)==length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)!=length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)==length(var3.3.2)) {
+        pages1<-indexn1
+        var2.2<-as.data.frame(var2.2.2[which((var2.2.2 %in% ae1.2)==F)])
+        var2.2<-apply(var2.2,2,paste,collapse=", ")
+        comments1<-paste("The variables:",var2.2,"were truncated on page No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)==length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)==length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)!=length(var3.3.2)) {
+        pages1<-indexn1
+        var3.3<-as.data.frame(var3.3.2[which((var3.3.2 %in% ae1.2)==F)])
+        var3.3<-apply(var3.3,2,paste,collapse=", ")
+        comments1<-paste("The variables:",var3.3,"were truncated on page No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)!=length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)!=length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)==length(var3.3.2)) {
+        pages1<-indexn1
+        data12<-c(var1.1.2[which((var1.1.2 %in% ae1.2)==F)],
+                  var2.2.2[which((var2.2.2 %in% ae1.2)==F)])
+        data12<-as.data.frame(data12)
+        data12<-apply(data12,1,paste,collapse=", ")
+        comments1<-paste("The variables:",data12,"were truncated on pages No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)!=length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)==length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)!=length(var3.3.2)) {
+        pages1<-indexn1
+        data13<-c(var1.1.2[which((var1.1.2 %in% ae1.2)==F)],
+                  var3.3.2[which((var3.3.2 %in% ae1.2)==F)])
+        data13<-as.data.frame(data13)
+        data13<-apply(data13,1,paste,collapse=", ")
+        comments1<-paste("The variables:",data13,"were truncated on pages No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)==length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)!=length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)!=length(var3.3.2)) {
+        pages1<-indexn1
+        data23<-c(var3.3.2[which((var3.3.2 %in% ae1.2)==F)],
+                  var2.2.2[which((var2.2.2 %in% ae1.2)==F)])
+        data23<-as.data.frame(data23)
+        data23<-apply(data23,1,paste,collapse=", ")
+        comments1<-paste("The variables:",data23,"were truncated on pages No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+      else if (sum(var1.1.2 %in% ae1.2)!=length(var1.1.2) &
+               sum(var2.2.2 %in% ae1.2)!=length(var2.2.2) &
+               sum(var3.3.2 %in% ae1.2)!=length(var3.3.2)) {
+        pages1<-indexn1
+        data123<-c(var1.1.2[which((var1.1.2 %in% ae1.2)==F)],
+                   var2.2.2[which((var2.2.2 %in% ae1.2)==F)],
+                   var3.3.2[which((var3.3.2 %in% ae1.2)==F)])
+        data123<-as.data.frame(data123)
+        data123<-apply(data123,1,paste,collapse=", ")
+        comments1<-paste("The variables:",data123,"were truncated on pages No.",pages1,".")
+        comments<-c(comments,comments1)
+      }
+    }
+  }
+  if (sum(grepl("No fields were truncated on page No",commentst))==length(indexn)) {
+    Findings<-"No fields were truncated."
+    Conclusions<-"Passed"
+  } else {
+    comments<-as.data.frame(comments)
+    comments<-apply(comments,2,paste,collapse="\n ")
+    Findings<-paste(comments)
+    Conclusions<-"Failed"
+  }
+  results<-list(Finding=Findings,
+                Conclusion=Conclusions)
+  return(results)
+}
+############################################################################
+#############QC funs########################################################
+
 ARMcheck <- function(indat){
   setwd("//cdars.pfizer.com/cdars/prod/prjA409/internship/A4091056/saseng/cdisc3_0/data/rawdata")
   if (file.exists("final.sas7bdat")==TRUE) {
@@ -142,7 +324,7 @@ DYCHECK <- function(indat,datname){
     conclusion <- "Not applicable"
   }
   Finding <- paste(finding, E, R, collapse = " ")
-  Conclusion <- paste(conclusion, collapse = " ")
+  Conclusion <- paste(conclusion, collapse = "\n")
   results <- list(Finding = Finding,
                   Conclusion = Conclusion)
   return(results)
@@ -218,9 +400,9 @@ EPOCHcheck <- function(indat, datname) {
       SUBJID <- full$USUBJID[full$EPOC != full$EPOCH]
       REPOCH <- full$EPOC[full$EPOC != full$EPOCH]
       OEPOCH <- full$EPOCH[full$EPOC != full$EPOCH]
-      Finding <- c()
+      finding <- c()
       for (i in 1:length(SUBJID)) {
-        Finding[i] <- (paste("EPOCH of subject ", SUBJID[i], " is", OEPOCH[i], ", but should be ", REPOCH[i], "."))
+        finding[i] <- (paste("EPOCH of subject ", SUBJID[i], " is", OEPOCH[i], ", but should be ", REPOCH[i], "."))
       }
       conclusion <- "Failed"
     }
@@ -229,19 +411,21 @@ EPOCHcheck <- function(indat, datname) {
     conclusion <- "Failed"
     Error <- ""
   }
+  Conclusion <- paste(conclusion, collapse = "\n")
   result <- list(Finding = finding,
                  Conclusion = conclusion)
   return(result)
 }
 
+#function
 ndupk <- function(indat,datname){
   name <- toupper(gsub(pattern = "\\..*", replacement = "", x = datname))
   if (sum(duplicated(indat))==0) {
     finding <-paste("No duplicate records in the ", name, "dataset.")
     conclusion<-"Passed"
   } else {
-    SUBJID <- indat$USUBJID[duplicated(indat)]
-    finding <- paste("There are duplicate records in the dataset:", SUBJID, collapse = " ")
+    rowno <- which(duplicated(indat)==TRUE)
+    finding <- paste("The below row(s) is/are duplicated record(s):", rowno, collapse = " ")
     conclusion <- "Failed"
   }
   result <- list(
@@ -307,6 +491,283 @@ RF <- function() {
   }
   return(RF)
 }
+
+###################################################################################
+###################################S4check#########################################
+S4checksafetable<-function(dataspath,group1,group2,group2.2,group3,group3.3,
+                           n1,n2,n3,startn,endn,pagediff){
+  Findings<-c()
+  Conclusions<-c()
+  #dataspath<-("C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Tables.pdf")
+  safetytables.all<-extract_tables(dataspath,pages=c(startn:endn),
+                                   guess = FALSE,output="data.frame")
+  # For placebo, only first page needs to be read
+  needpagesp<-c()
+  needpagesp1<-c()
+  unmatched_pages<-c()
+  unmatched_pages1<-c()
+  pn1<-c()
+  pn2<-c()
+  for (i in 1:length(safetytables.all)) {
+    if (any(grepl("Page.1.of",colnames(safetytables.all[[i]]))==TRUE)) {
+      needpagesp1<-i+pagediff
+      needpagesp<-c(needpagesp,needpagesp1)
+    }
+  }
+  safetytables.checkp<-extract_tables(dataspath,pages=needpagesp,
+                                      guess = FALSE,output="data.frame")
+  for (i in 1:length(needpagesp)) {
+    safetydatap<-safetytables.checkp[[i]]
+    pn1[i]<-any(grepl("Safety Population",safetydatap)==TRUE)
+    pn2[i]<-any((grepl(paste(group1),safetydatap) &
+                   grepl(paste(n1),safetydatap))==TRUE)
+    if (pn1[i]==TRUE){
+      if (pn2[i]==FALSE) {
+        unmatched_pages1<-needpagesp[i]
+        unmatched_pages<-c(unmatched_pages,unmatched_pages1)
+      }
+    }
+  }
+  if (!is.null(unmatched_pages)){
+    unmatched_pages<-as.data.frame(unmatched_pages)
+    unmatched_pages<-apply(unmatched_pages,2,paste,collapse=", ")
+    Findings[1]<-paste("The tables in the below pages include inconsistant number of subjects for the",
+                       paste(group1),
+                       "group:",
+                       paste(unmatched_pages),".")
+    Conclusions[1]<-paste("Failed for",paste(group1), "group")
+  }
+  else {
+    Findings[1]<-paste("The number of subjects are consistent across",
+                       paste(group1),
+                       "tables.")
+    Conclusions[1]<-paste("Passed for",paste(group1), "group")
+  }
+  needpages<-c() #Read the first,second and third pages of each table
+  for (i in 1:length(safetytables.all)) {
+    if (any(grepl("Page.1.of",colnames(safetytables.all[[i]]))==TRUE) |
+        any(grepl("Page.2.of",colnames(safetytables.all[[i]]))==TRUE) |
+        any(grepl("Page.3.of",colnames(safetytables.all[[i]]))==TRUE)) {
+      needpages1<-i+pagediff
+      needpages<-c(needpages,needpages1)
+    }
+  }
+  safetytables.check<-extract_tables(dataspath,pages=needpages,
+                                     guess = FALSE,output="data.frame")
+  #groupm<-"Placebo" # we can define different group name based on the study
+  #subn<-"(N=232)" # we can define different number for different treatment group
+  unmatched_pagest25<-c()
+  unmatched_pages1t25<-c()
+  unmatched_pagest50<-c()
+  unmatched_pages1t50<-c()
+  safepop<-c()
+  t25.1<-c()
+  t25.2<-c()
+  t50.1<-c()
+  t50.2<-c()
+  # Value may be on the same page, but may be in different column
+  for (i in 1:length(needpages)) {
+    safetydata<-safetytables.check[[i]]
+    safepop[i]<-any(grepl("Safety Population",safetydata)==TRUE)
+    t25.1[i]<-any((grepl(paste(group2),safetydata) &
+                     grepl(paste(group2.2),safetydata))==TRUE)
+    t25.2[i]<-any(grepl(paste(n2),safetydata)==TRUE)
+    t50.1[i]<-any((grepl(paste(group3),safetydata) &
+                     grepl(paste(group3.3),safetydata))==TRUE)
+    t50.2[i]<-any(grepl(paste(n3),safetydata)==TRUE)
+
+    if (safepop[i]==TRUE) {
+      if (t25.1[i]==TRUE){
+        if (t25.2[i]==FALSE)
+        {
+          unmatched_pages1t25<-needpages[i]
+          unmatched_pagest25<-c(unmatched_pagest25,unmatched_pages1t25)
+        }
+      }
+      if (t50.1[i]==TRUE) {
+        if (t50.2[i]==FALSE) {
+          unmatched_pages1t50<-needpages[i]
+          unmatched_pagest50<-c(unmatched_pagest50,unmatched_pages1t50)
+        }
+      }
+    }
+  }
+  if (!is.null(unmatched_pagest25)) {
+    unmatched_pagest25<-as.data.frame(unmatched_pagest25)
+    unmatched_pagest25<-apply(unmatched_pagest25,2,paste,collapse=", ")
+    Findings[2]<-paste("The tables in the below pages include inconsistant number of subjects for the",
+                       paste(group2),
+                       paste(group2.2),
+                       "group:",
+                       paste(unmatched_pagest25),".")
+    Conclusions[2]<-paste("Failed for",paste(group2), paste(group2.2),"group")
+  }
+  else {
+    Findings[2]<-paste("The number of subjects are consistent across",
+                       paste(group2),
+                       "tables.")
+    Conclusions[2]<-paste("Passed for",paste(group2), paste(group2.2),"group")
+  }
+  if (!is.null(unmatched_pagest50)) {
+    unmatched_pagest50<-as.data.frame(unmatched_pagest50)
+    unmatched_pagest50<-apply(unmatched_pagest50,2,paste,collapse=", ")
+    Findings[3]<-paste("The tables in the below pages include inconsistant number of subjects for the",
+                       paste(group3),
+                       paste(group3.3),
+                       "group:",
+                       paste(unmatched_pagest50),".")
+    Conclusions[3]<-paste("Failed for",paste(group3), paste(group3.3),"group")
+  }
+  else {
+    Findings[3]<-paste("The number of subjects are consistent across",
+                       paste(group3),
+                       "tables.")
+    Conclusions[3]<-paste("Passed for",paste(group3), paste(group3.3),"group")
+  }
+  Finding<-paste(Findings,collapse="\n")
+  Conclusion<-paste(Conclusions,collapse="\n")
+  results<-list(
+    Finding=Finding,
+    Conclusion=Conclusion
+  )
+  return(results)
+}
+#####################################################################################
+###############################S5 check##############################################
+S5checkf<-function(dataspath,keyword1,keyword2){
+  Findings<-c()
+  Conclusions<-c()
+  unmatched_pages1<-c()
+  unmatched_pages<-c()
+  aetable<-extract_tables(dataspath,guess=FALSE,output="data.frame")
+  for (i in 1:length(aetable)) {
+    if(any(grepl(paste(keyword1),aetable[[i]][2,1]))==TRUE) {
+      if(any(grepl(paste(keyword2), aetable[[i]][,1]))==FALSE) {
+        unmatched_pages1<-i
+        unmatched_pages<-c(unmatched_pages,unmatched_pages1)
+      }
+    }
+  }
+  if (!is.null(unmatched_pages)) {
+    unmatched_pages<-as.data.frame(unmatched_pages)
+    unmatched_pages<-apply(unmatched_pages,2,paste,collapse=", ")
+    Findings<-paste("The dictionary name and version are not included in the footnotes of below pages for the AE data presentations:",
+                    paste(unmatched_pages),".")
+    Conclusions<-"Failed"
+  }
+  else {
+    Findings<-"The dictionary name and version are included in the footnotes for the AE data presentations."
+    Conclusions<-"Passed"
+  }
+  Finding<-paste(Findings)
+  results<-list(Finding=Finding,
+                Conclusion=Conclusions)
+  return(results)
+}
+#############################################################################
+#########################################S7 check############################
+S7check<-function(proh.list,dataspath) {
+  proh<-c(proh.list)
+  proh <- toupper(proh)
+  library(stringr)
+  adcm2<-extract_tables(dataspath,pages=c(1:92),
+                        guess = FALSE,output="data.frame")
+  Findings<-c()
+  Conclusions<-c()
+  comments<-c()
+  comments1<-c()
+  commentst<-c()
+  med1<-c()
+  page1<-c()
+  for (i in 1:length(adcm2))
+  {if (sum(grepl(proh, adcm2[[i]][,1]))==0)  {comments1<-"No prohibited medications"
+  comments<-c(comments,comments1)
+  } else {med1<-str_extract(adcm2[[i]][,1],proh)
+  med1<-med1[!is.na(med1)]
+  med1<-as.data.frame(med1)
+  med1<-apply(med1,2,paste,collapse=", ")
+  page1<-i
+  comments1<-paste("The below listed prohibited medications:", med1,
+                   "are included in the summary tables",
+                   "on page No.",
+                   page1,
+                   ".")
+  commentst<-c(commentst,comments1)
+  }
+  }
+  if (length(comments)==length(adcm2)) {
+    Findings<-"No prohibited medications in the summary tables."
+    Conclusions<-"Passed"
+  } else {
+    commentst<-as.data.frame(commentst)
+    commentst<-apply(commentst,2,paste,collapse="\n ")
+    Findings<-paste(commentst)
+    Conclusions<-"Failed"
+  }
+  results<-list(
+    Finding=Findings,
+    Conclusion=Conclusions
+  )
+  return(results)
+}
+#############################################################################
+#################################S13check####################################
+S13check<-function(dataspath,pagevector) {
+  sd<-extract_tables(dataspath,pages=pagevector,
+                     guess = FALSE,output="data.frame")
+  Findings<-c()
+  Conclusions<-c()
+  for (i in 1:length(sd))
+  {colnames(sd[[i]])<-c("abc")}
+  com<-c()
+  com1<-c()
+  std<-c()
+  std1<-c()
+  std2<-c()
+  rang<-c()
+  rang1<-c()
+  rang2<-c()
+  pg<-c()
+  pg1<-c()
+  for (i in 1:length(sd))
+  {if (sum(grepl("Std Dev", sd[[i]][,1]))!=0) {
+    std1<-sd[[i]][which(grepl("Std Dev", sd[[i]][,1])==T),]
+    std1<-std1[,which(!is.na(std1[1,]))]
+    for (j in 1:nrow(std1)) {
+      std2<-std1[j,which(std1[j,]!="")]
+      std<-c(std,std2)
+    }
+    rang1<-sd[[i]][which(grepl("Range", sd[[i]][,1])==T),]
+    rang1<-rang1[,which(!is.na(rang1[1,]))]
+    for (j in 1:nrow(rang1)) {
+      rang2<-rang1[j,which(rang1[j,]!="")]
+      rang<-c(rang,rang2)
+    }
+    pg1<-pagevector[i]
+    pg<-c(pg,pg1)}
+  }
+  std<-as.data.frame(std)
+  rang<-as.data.frame(rang)
+  pg<-as.data.frame(pg)
+  std<-apply(std,1,paste,collapse=", ")
+  rang<-apply(rang,1,paste,collapse=", ")
+  pg<-apply(pg,2,paste,collapse=", ")
+  Findings<-paste("Please check the below standard deviations:",
+                  std,
+                  "and its corresponding ranges:",
+                  rang,
+                  "on the below pages:",
+                  pg,
+                  ".")
+  Conclusions<-"Please confirm whether the ranges are reasonable."
+  results<-list(
+    Finding=Findings,
+    Conclusion=Conclusions
+  )
+  return(results)
+}
+
+#####################################################################
 
 
 shinyServer(function(input, output,session) {
@@ -665,7 +1126,9 @@ shinyServer(function(input, output,session) {
     switch(input$cstat,"ANOVA"=effi_anova(),"Summary"=summary(effi_anova()))
   })
   effi_anova <-reactive({
-
+    wnall<-adwnall.sas7bdat
+    setwd("\\\\cdars.pfizer.com/cdars/prod/prjA409/internship/A4091056/saseng/cdisc3_0/data_vai")
+    sl<-read_sas("adsl.sas7bdat")
 
     # subset: change of pain subscale in week 16
     pnsubscr <- subset(wnall, PARAM == "WOMAC2-WOMAC Pain Subscale Score" & AVISIT == "WEEK 16" & TYPEC == "LOCF")
@@ -699,7 +1162,8 @@ shinyServer(function(input, output,session) {
     n<-input$n
   })
   painSCn<-reactive({
-    painSC1<-painSC[painSC$TYPEC=="LOCF",]
+    painSC2=adwnall.sas7bdat[adwnall.sas7bdat$PARAM=="WOMAC2-WOMAC Pain Subscale Score",]
+    painSC1<-painSC2[painSC2$TYPEC=="LOCF",]
     return(
       painSCn<-painSC1[1:n(),]
     )
@@ -847,30 +1311,34 @@ shinyServer(function(input, output,session) {
                {
                  output$Message<-renderText(
                    print("<b>Your QC report for SDTM datasets has been updated.
-                         Please download the report by clicking the 'Reports' tab.</b>"))
+                         Please download the report by clicking the 'QC reports' button below.</b>"))
 
                  Item1="General 1"
                  ndup <- ndupk(data_sets(),input$datasets)
                  message1 <- ndup$Finding
                  conclusion1 <- ndup$Conclusion
+                 message1<-sapply(lapply(message1, strwrap, width=50), paste, collapse="\n")
                  itemh1<-cbind(Item1,message1,conclusion1)
 
                  Item2="General 2"
                  epoch <- EPOCHcheck(data_sets(),input$datasets)
                  message2 <- epoch$Finding
                  conclusion2 <- epoch$Conclusion
+                 message2<-sapply(lapply(message2, strwrap, width=50), paste, collapse="\n")
                  itemh2<-cbind(Item2,message2,conclusion2)
 
                  Item3="General 3"
                  dy <- DYCHECK(data_sets(),input$datasets)
                  message3 <- dy$Finding
                  conclusion3 <- dy$Conclusion
+                 message3<-sapply(lapply(message3, strwrap, width=50), paste, collapse="\n")
                  itemh3<-cbind(Item3,message3,conclusion3)
 
                  Item4="General 4"
                  DTC <- DTCfmt(data_sets(),input$datasets)
                  message4 <- DTC$Finding
                  conclusion4 <- DTC$Conclusion
+                 message4<-sapply(lapply(message4, strwrap, width=50), paste, collapse="\n")
                  itemh4 <- cbind(Item4,message4,conclusion4)
 
                  Item5="General 5"
@@ -1078,6 +1546,7 @@ shinyServer(function(input, output,session) {
                  conclusion8<-"Not applicable"}
                  itemh8<-cbind(Item8,message8,conclusion8)
 
+                 ## QC(DM) check for other race
                  Item9="DM 3"
                  if (input$datasets=="dm.sas7bdat")
                  {
@@ -1092,54 +1561,41 @@ shinyServer(function(input, output,session) {
                  conclusion9<-"Not applicable"}
                  itemh9<-cbind(Item9,message9,conclusion9)
 
-                 ## QC(DM) check for other race
-                 Item10="DM 3"
-                 if (input$datasets=="dm.sas7bdat")
-                 {
-                   res=any(colnames(data_sets())=="RACEOTH")
-                   if (res=="FALSE")
-                   {message10<-"No other race in the dataset."
-                   conclusion10<-"Passed"}
-                   else {message10<-"There is other race in the dataset."
-                   conclusion10<-"Failed"}
-                 }
-                 else {message10<-"This item is only applicable to DM domain."
-                 conclusion10<-"Not applicable"}
-                 itemh10<-cbind(Item10,message10,conclusion10)
+
 
                  ## QC(DM) check for multiple race
-                 Item11="SUPPDM 1"
+                 Item10="SUPPDM 1"
                  if (input$datasets=="suppdm.sas7bdat")
                  {
                    mul=any(data_sets()$QNAM=="RACE1")
                    if (mul=="FALSE")
-                   {message11<-"No multiple race in the dataset."
-                   conclusion11<-"Passed"}
-                   else {message11<-"There is multiple race in the dataset."
-                   conclusion11<-"Failed"}
+                   {message10<-"No multiple race in the dataset."
+                   conclusion10<-"Passed"}
+                   else {message10<-"There is multiple race in the dataset."
+                   conclusion10<-"Failed"}
                  }
-                 else {message11<-"This item is only applicable to SUPPDM domain."
-                 conclusion11<-"Not applicable"}
-                 itemh11<-cbind(Item11,message11,conclusion11)
+                 else {message10<-"This item is only applicable to SUPPDM domain."
+                 conclusion10<-"Not applicable"}
+                 itemh10<-cbind(Item10,message10,conclusion10)
 
                  ## QC(EX) check for whodrug standard
-                 Item12="EX 1"
+                 Item11="EX 1"
                  if (input$datasets=="ex.sas7bdat")
                  {
                    who=any(data_sets()$EXTRT=="Tanezumab 2.5/5 mg"
                            |data_sets()$EXTRT== "Tanezumab 2.5 mg")
                    if (who=="FALSE")
-                   {message12<-"It meets whodrug standard: PF-04383119."
-                   conclusion12<-"Passed"}
-                   else {message12<-"It didn't pass the QC check."
-                   conclusion12<-"Failed"}
+                   {message11<-"It meets whodrug standard: PF-04383119."
+                   conclusion11<-"Passed"}
+                   else {message11<-"It didn't pass the QC check."
+                   conclusion11<-"Failed"}
                  }
-                 else {message12<-"This item is only applicable to EX domain."
-                 conclusion12<-"Not applicable"}
-                 itemh12<-cbind(Item12,message12,conclusion12)
+                 else {message11<-"This item is only applicable to EX domain."
+                 conclusion11<-"Not applicable"}
+                 itemh11<-cbind(Item11,message11,conclusion11)
 
                  ## QC check for LB (%)
-                 Item13="LB 1"
+                 Item12="LB 1"
                  if (input$datasets=="lb.sas7bdat")
                  {
                    if (any(data_sets()$LBORRESU=="%"))
@@ -1155,19 +1611,19 @@ shinyServer(function(input, output,session) {
                      LE=any(grepl("LE",per1$LBTESTCD)=="FALSE")
                      LE1=any(grepl("/",per1$LBTEST)=="FALSE")
                      if (LE=="FALSE"& LE1=="FALSE")
-                     {message13<-"It meets % rule: LBTESTCD comtain LE."
-                     conclusion13<-"Passed"}
-                     else {message13<-"Omg, check for LBTESTCD and LBTEST."
-                     conclusion13<-"Failed"}
+                     {message12<-"It meets % rule: LBTESTCD comtain LE."
+                     conclusion12<-"Passed"}
+                     else {message12<-"Omg, check for LBTESTCD and LBTEST."
+                     conclusion12<-"Failed"}
                    }
                  }
-                 else {message13<-"This item in only applicable to LB domain."
-                 conclusion13<-"Not applicable"}
-                 itemh13<-cbind(Item13,message13,conclusion13)
+                 else {message12<-"This item in only applicable to LB domain."
+                 conclusion12<-"Not applicable"}
+                 itemh12<-cbind(Item12,message12,conclusion12)
 
                  messagesdtm<-as.data.frame(rbind(itemh1,itemh2,itemh3,itemh4,itemh5,
                                                   itemh6,itemh7,itemh8,itemh9,itemh10,
-                                                  itemh11,itemh12,itemh13
+                                                  itemh11,itemh12
                  ))
                  colnames(messagesdtm)<-c("Item #","Findings","Conclusions")
                  setwd("~")
@@ -1199,7 +1655,7 @@ shinyServer(function(input, output,session) {
   observeEvent(input$QCdataset,
                {output$Message<-renderText(
                  print("<b>Your QC report for Dataset has been updated.
-                       Please download the report by clicking the 'Reports' tab.</b>")
+                       Please download the report by clicking the 'QC reports' button below.</b>")
                  )
                Item1="D 11"
                specs<-specdata()[,7]
@@ -1215,8 +1671,8 @@ shinyServer(function(input, output,session) {
                  specnotadam<-specs1[((specs1$varsinspec %in% adamvarnames$varsinadam)==FALSE),]
                  specnotadam1<-as.data.frame(specnotadam)
                  specnotadam2<-apply(specnotadam1,2,paste,collapse=", ")
-                 message1<-paste("The below variables in the specs
-                                 but not in the ADaM dataset:",
+                 message1<-paste("The below variables in the",input$dataseta,"specs
+                                 but not in the",input$dataseta,"ADaM dataset:",
                                  specnotadam2)
                  conclusion1<-"Failed"
                }
@@ -1226,8 +1682,8 @@ shinyServer(function(input, output,session) {
                  adamnotspec<-adamvarnames[((adamvarnames$varsinadam %in% specs1$varsinspec)==FALSE),]
                  adamnotspec1<-as.data.frame(adamnotspec)
                  adamnotspec2<-apply(adamnotspec1,2,paste,collapse=", ")
-                 message1<-paste("The below variables in the ADaM dataset
-                                 but not in the specs:",
+                 message1<-paste("The below variables in the",input$dataseta, "ADaM dataset
+                                 but not in the",input$dataseta, "specs:",
                                  adamnotspec2)
                  conclusion1<-"Failed"
                }
@@ -1242,16 +1698,17 @@ shinyServer(function(input, output,session) {
                  specnotadam1<-as.data.frame(specnotadam)
                  specnotadam2<-apply(specnotadam1,2,paste,collapse=", ")
 
-                 message1<-paste("The below variables in the specs but
-                                 not in the ADaM dataset:",
+                 message1<-paste("The below variables in the",input$dataseta, "specs but
+                                 not in the",input$dataseta, "ADaM dataset:",
                                  specnotadam2,
                                  ". ",
-                                 "The below variables in the ADaM dataset but
-                                 not in the specs:",
+                                 "The below variables in the",input$dataseta, "ADaM dataset but
+                                 not in the",input$dataseta, "specs:",
                                  adamnotspec2,
                                  ".")
                  conclusion1<-"Failed"}
-               else {message1<-"The variables in the ADaM dataset are mapped with those in specs."
+               else {message1<-paste("The variables in the",
+                                     input$dataseta,"ADaM dataset are mapped with those in",input$dataseta, "specs.")
                conclusion1<-"Passed"}
                message1<-sapply(lapply(message1, strwrap, width=50), paste, collapse="\n")
                itemh1<-cbind(Item1,message1,conclusion1)
@@ -1288,7 +1745,7 @@ shinyServer(function(input, output,session) {
   observeEvent(input$QCgeneral,
                {output$Message<-renderText(
                  print("<b>Your QC report for General Items has been updated.
-                       Please download the report by clicking the 'Reports' tab.</b>")
+                       Please download the report by clicking the 'QC reports' button below.</b>")
                  )
                Item1="G29"
                if (input$dataseta=="adsl.sas7bdat")
@@ -1306,7 +1763,8 @@ shinyServer(function(input, output,session) {
                    aimnotadam<-aimvars[((aimvars$shvars %in% adamvarnames$varsinadam)==FALSE),]
                    aimnotadam1<-as.data.frame(aimnotadam)
                    aimnotadam2<-apply(aimnotadam1,2,paste,collapse=", ")
-                   message1<-paste("The below required variables/flags are not in the ADaM dataset:",
+                   message1<-paste("The below required variables/flags are not in the", input$dataseta,
+                                   "ADaM dataset:",
                                    aimnotadam2, ".")
                    conclusion1<-"Failed"
                  }
@@ -1321,8 +1779,21 @@ shinyServer(function(input, output,session) {
                messagesdtm<-as.data.frame(rbind(itemh1))
                colnames(messagesdtm)<-c("Item #","Findings","Conclusions")
                setwd("~")
+               table <- tableGrob(messagesdtm)
+               grid.newpage()
+               h <- grobHeight(table)
+               w <- grobWidth(table)
+               title <- textGrob(paste("QC check results for General:",input$dataseta),
+                                 y=unit(0.5,"npc") + 3.0*h,
+                                 vjust=0, gp=gpar(fontsize=10))
+               footnote <- textGrob(paste("PFIZER CONFIDENTIAL\nTime of report generation:",
+                                          Sys.time()),
+                                    x=unit(0.5,"npc") - 3.0*w,
+                                    y=unit(0.5,"npc") - 3.0*h,
+                                    vjust=1,hjust=0,gp=gpar( fontface="italic"))
+               gt <- gTree(children=gList(table, title, footnote))
                pdf("QCresults.pdf",height=11,width=8.5)
-               grid.table(messagesdtm)
+               grid.draw(gt)
                dev.off()
                output$QC_Reports<-downloadHandler(
                  filename = "QC_report.pdf",
@@ -1335,22 +1806,83 @@ shinyServer(function(input, output,session) {
   observeEvent(input$QCtable,
                {output$Message<-renderText(
                  print("<b>Your QC report for Tables has been updated.
-                       Please download the report by clicking the 'Reports' tab.</b>")
+                       Please download the report by clicking the 'QC reports' button below.</b>")
                  )
-               Item1="General 1"
-               if (sum(duplicated(data_sets()))==0 &
-                   !is.na(sum(duplicated(data_sets()))==0))
-               {message1<-"No duplicate records in the dataset."
-               conclusion1<-"Passed"}
-               else {message1<-"There are duplicate records in the dataset."
-               conclusion1<-"Failed"}
+               Item1="S4"
+               S4results<-S4checksafetable(dataspath=("C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Tables.pdf"),
+                                           group1="Placebo",n1="(N=232)",
+                                           group2="Tanezumab",group2.2="2.5",n2="(N=231)",
+                                           group3="Tanezumab",group3.3="2.5/5",n3="(N=233)",
+                                           startn=6,endn=433,pagediff=5)
+               message1 <- S4results$Finding
+               conclusion1 <- S4results$Conclusion
+               message1<-sapply(lapply(message1, strwrap, width=50), paste, collapse="\n")
+               conclusion1<-sapply(lapply(conclusion1, strwrap, width=28), paste, collapse="\n")
                itemh1<-cbind(Item1,message1,conclusion1)
 
-               messagesdtm<-as.data.frame(rbind(itemh1))
+               Item2="S5"
+               S5results<-S5checkf(dataspath="C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Tables.pdf",
+                                   keyword1="Adverse Event",keyword2="MedDRA v")
+               message2<-S5results$Finding
+               conclusion2<-S5results$Conclusion
+               message2<-sapply(lapply(message2, strwrap, width=50), paste, collapse="\n")
+               conclusion2<-sapply(lapply(conclusion2, strwrap, width=28), paste, collapse="\n")
+               itemh2<-cbind(Item2,message2,conclusion2)
+
+               Item3="S7"
+               S7results<-S7check(proh.list = "Aspirin >325 mg/day|Azapropazone|Bromfenac|Capsaicin|Carprofen
+                                  |Celecoxib|Codeine|Diclofenac|Diclofenac gels|Diclofenac/misoprostol
+                                  |Diflunisal|Dipyrone|Etodolac|Fenbufen|Fentanyl|Fenoprofen|Flufenamic acid
+                                  |Flurbiprofen|Hydrocodone|Hydromorphone|Ibuprofen|Indomethacin|Ketoprofen
+                                  |Ketorolac|Lidocaine patch or EMLA|Meclofenamate|Mefenamic acid
+                                  |Meloxicam|Meperidine|Mexiletine|Morphine|Nabumetone|Naproxen|Oxaprofen
+                                  |Oxaprozin|Oxycodone|Oxycodone CR|Oxymorphone
+                                  |Phenylbutazone|Piroxicam|Pirprofen|Propoxyphene
+                                  |Salicylates|Sulindac|Suprofen|Tapentadol|Tenoxicam
+                                  |Tiaprofenic acid|Tolmetin|Tramadol|betamethasone
+                                  |Cortisone|dexamethasone|fludrocortisone
+                                  |hydrocortisone|methylprednisolone|Prednisolone
+                                  |Prednisone|Adalimumab|Etanercept|Infliximab
+                                  |BCG|Herpes zoster vaccine|Influenza|intranasal
+                                  |Measles|Measles, Mumps, and Rubella (MMR)|Mumps
+                                  |Oral poliovirus vaccine, oral|Rotavirus, oral
+                                  |Rubella|Smallpox|Typhoid, oral|Varicella zoster
+                                  |Yellow fever",
+                                  dataspath="C:\\Users\\zengj23\\Documents\\Week 6-10\\Reference\\adcm_l001_ns.pdf")
+               message3<-S7results$Finding
+               conclusion3<-S7results$Conclusion
+               message3<-sapply(lapply(message3, strwrap, width=50), paste, collapse="\n")
+               conclusion3<-sapply(lapply(conclusion3, strwrap, width=28), paste, collapse="\n")
+               itemh3<-cbind(Item3,message3,conclusion3)
+
+               Item4="S13"
+               S13results<-S13check(dataspath="C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Tables.pdf",
+                                    pagevector=c(9:98))
+               message4<-S13results$Finding
+               conclusion4<-S13results$Conclusion
+               message4<-sapply(lapply(message4, strwrap, width=50), paste, collapse="\n")
+               conclusion4<-sapply(lapply(conclusion4, strwrap, width=28), paste, collapse="\n")
+               itemh4<-cbind(Item4,message4,conclusion4)
+
+               messagesdtm<-as.data.frame(rbind(itemh1,itemh2,itemh3,itemh4
+               ))
                colnames(messagesdtm)<-c("Item #","Findings","Conclusions")
                setwd("~")
-               pdf("QCresults.pdf",height=11,width=8.5)
-               grid.table(messagesdtm)
+               table <- tableGrob(messagesdtm)
+               grid.newpage()
+               h <- grobHeight(table)
+               w <- grobWidth(table)
+               title <- textGrob("QC check results for Tables",
+                                 y=unit(0.5,"npc") + 40.0*h,
+                                 vjust=0, gp=gpar(fontsize=10))
+               footnote <- textGrob(paste("PFIZER CONFIDENTIAL\nTime of report generation:",
+                                          Sys.time()),
+                                    x=unit(0.5,"npc") - 3.0*w,
+                                    y=unit(0.5,"npc") - 40.0*h,
+                                    vjust=1,hjust=0,gp=gpar( fontface="italic"))
+               gt <- gTree(children=gList(table, title, footnote))
+               pdf("QCresults.pdf",height=66,width=8.5)
+               grid.draw(gt)
                dev.off()
                output$QC_Reports<-downloadHandler(
                  filename = "QC_report.pdf",
@@ -1359,26 +1891,39 @@ shinyServer(function(input, output,session) {
                  }
                )
                }
-  )
+               )
   observeEvent(input$QClisting,
                {output$Message<-renderText(
                  print("<b>Your QC report for Listings has been updated.
-                       Please download the report by clicking the 'Reports' tab.</b>")
+                       Please download the report by clicking the 'QC reports' button below.</b>")
                  )
-               Item1="General 1"
-               if (sum(duplicated(data_sets()))==0 &
-                   !is.na(sum(duplicated(data_sets()))==0))
-               {message1<-"No duplicate records in the dataset."
-               conclusion1<-"Passed"}
-               else {message1<-"There are duplicate records in the dataset."
-               conclusion1<-"Failed"}
+               Item1="L13"
+               L13results<-L13check(dataspath1="C:\\Users\\zengj23\\Documents\\Week4-5-Table and lists\\A4091056_CaPS_BDR3_Safety_Listings.pdf",
+                                    dataspath2="C:\\Users\\zengj23\\Documents\\Week 2_ADaM\\ADAE.csv",
+                                    pagesvector=c(2644:2653))
+               message1<-L13results$Finding
+               conclusion1<-L13results$Conclusion
+               message1<-sapply(lapply(message1, strwrap, width=50), paste, collapse="\n")
                itemh1<-cbind(Item1,message1,conclusion1)
 
                messagesdtm<-as.data.frame(rbind(itemh1))
                colnames(messagesdtm)<-c("Item #","Findings","Conclusions")
                setwd("~")
+               table <- tableGrob(messagesdtm)
+               grid.newpage()
+               h <- grobHeight(table)
+               w <- grobWidth(table)
+               title <- textGrob("QC check results for Listings",
+                                 y=unit(0.5,"npc") + 3.0*h,
+                                 vjust=0, gp=gpar(fontsize=10))
+               footnote <- textGrob(paste("PFIZER CONFIDENTIAL\nTime of report generation:",
+                                          Sys.time()),
+                                    x=unit(0.5,"npc") - 3.0*w,
+                                    y=unit(0.5,"npc") - 3.0*h,
+                                    vjust=1,hjust=0,gp=gpar( fontface="italic"))
+               gt <- gTree(children=gList(table, title, footnote))
                pdf("QCresults.pdf",height=11,width=8.5)
-               grid.table(messagesdtm)
+               grid.draw(gt)
                dev.off()
                output$QC_Reports<-downloadHandler(
                  filename = "QC_report.pdf",
@@ -1391,7 +1936,7 @@ shinyServer(function(input, output,session) {
   observeEvent(input$QCfigure,
                {output$Message<-renderText(
                  print("<b>Your QC report for Figures has been updated.
-                       Please download the report by clicking the 'Reports' tab.</b>")
+                       Please download the report by clicking the 'QC reports' button below.</b>")
                  )
                Item1="General 1"
                if (sum(duplicated(data_sets()))==0 &
@@ -1405,8 +1950,21 @@ shinyServer(function(input, output,session) {
                messagesdtm<-as.data.frame(rbind(itemh1))
                colnames(messagesdtm)<-c("Item #","Findings","Conclusions")
                setwd("~")
+               table <- tableGrob(messagesdtm)
+               grid.newpage()
+               h <- grobHeight(table)
+               w <- grobWidth(table)
+               title <- textGrob("QC check results for Figures",
+                                 y=unit(0.5,"npc") + 1.5*h,
+                                 vjust=0, gp=gpar(fontsize=10))
+               footnote <- textGrob(paste("PFIZER CONFIDENTIAL\nTime of report generation:",
+                                          Sys.time()),
+                                    x=unit(0.5,"npc") - 1.5*w,
+                                    y=unit(0.5,"npc") - 1.5*h,
+                                    vjust=1,hjust=0,gp=gpar( fontface="italic"))
+               gt <- gTree(children=gList(table, title, footnote))
                pdf("QCresults.pdf",height=11,width=8.5)
-               grid.table(messagesdtm)
+               grid.draw(gt)
                dev.off()
                output$QC_Reports<-downloadHandler(
                  filename = "QC_report.pdf",
